@@ -50,13 +50,11 @@ app.get('/', (req, res) => {
   });
 });
 
-// Iniciar servidor
-app.listen(PORT, async () => {
-  console.log(`Servidor iniciado en el puerto ${PORT}`);
-  console.log(`Modo: ${process.env.NODE_ENV || 'development'}`);
-  // Probar conexión a la base de datos
+// Exportar app para entornos serverless (Vercel) y escuchar solo en ejecución directa
+async function startIfRunDirect() {
+  // Probar conexión a la base de datos al iniciar
   const isConnected = await testConnection();
-  
+
   // Seed controlado de usuarios iniciales SOLO si INIT_SEED_USERS === 'true'
   if (process.env.INIT_SEED_USERS === 'true' && isConnected) {
     try {
@@ -67,7 +65,20 @@ app.listen(PORT, async () => {
       console.error('⚠️ Error en seed de usuarios (continuando):', error.message);
     }
   }
-});
+}
+
+if (require.main === module) {
+  app.listen(PORT, async () => {
+    console.log(`Servidor iniciado en el puerto ${PORT}`);
+    console.log(`Modo: ${process.env.NODE_ENV || 'development'}`);
+    await startIfRunDirect();
+  });
+} else {
+  // Vercel importará el handler
+  startIfRunDirect();
+}
+
+module.exports = app;
 
 // Manejo graceful de cierre del servidor
 process.on('SIGTERM', () => {

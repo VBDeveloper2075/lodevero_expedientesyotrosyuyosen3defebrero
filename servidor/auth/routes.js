@@ -5,7 +5,8 @@ const {
   login,
   getProfile,
   verifyTokenEndpoint,
-  getAllUsers
+  getAllUsers,
+  logout
 } = require('./controllers');
 const { verifyToken, requireAdmin } = require('./middleware');
 
@@ -16,6 +17,7 @@ router.post('/login', login);
 // Rutas protegidas (requieren autenticación)
 router.get('/me', verifyToken, getProfile);
 router.get('/verify', verifyToken, verifyTokenEndpoint);
+router.post('/logout', verifyToken, logout);
 
 // Rutas de administrador
 router.get('/users', verifyToken, requireAdmin, getAllUsers);

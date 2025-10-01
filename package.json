@@ -6,6 +6,7 @@
   "scripts": {
     "client": "cd cliente && npm start",
     "server": "cd servidor && node server.js",
+    "build": "node index.js",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "init-db": "cd servidor && node config/initDB.js",
     "docker:up": "docker-compose up -d",

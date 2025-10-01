@@ -219,5 +219,9 @@ module.exports = {
   login,
   getProfile,
   verifyTokenEndpoint,
-  getAllUsers
+  getAllUsers,
+  // Logout simple para clientes JWT: solo mensaje; el cliente debe descartar el token
+  logout: (req, res) => {
+    return res.json({ success: true, message: 'Sesión finalizada con éxito' });
+  }
 };
