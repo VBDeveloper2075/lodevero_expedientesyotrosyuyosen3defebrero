@@ -12,8 +12,7 @@
     "test": "echo 'No tests specified'"
   },
   "engines": {
-    "node": "18.x",
-    "npm": "9.x"
+    "node": "22.x"
   },
   "keywords": [],
   "author": "vbar@abc.gob.ar",
