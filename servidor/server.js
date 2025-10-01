@@ -7,15 +7,39 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Configuración CORS - Temporalmente permisivo para deploy inicial
+// Configuración CORS flexible: acepta FRONTEND_URL o CORS_ORIGIN (lista separada por comas)
+function buildAllowedOrigins() {
+  const isProd = process.env.NODE_ENV === 'production';
+  const envOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || '')
+    .split(',')
+    .map(o => o.trim())
+    .filter(Boolean);
+
+  if (!isProd) {
+    // Siempre incluir orígenes locales en desarrollo
+    envOrigins.push('http://localhost:3000', 'http://127.0.0.1:3000');
+  }
+
+  // Quitar duplicados
+  return [...new Set(envOrigins)];
+}
+
+const allowedOrigins = buildAllowedOrigins();
+
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL || true  // Permitir cualquier origen si no hay FRONTEND_URL
-    : ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  origin: (origin, callback) => {
+    // Permitir herramientas sin origin (curl/postman) y orígenes válidos
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Origen no permitido por CORS: ' + origin));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 };
+
+console.log('🌐 CORS orígenes permitidos:', allowedOrigins.length ? allowedOrigins : '[todos]');
 
 // Middleware
 app.use(cors(corsOptions));
@@ -50,6 +74,15 @@ app.get('/', (req, res) => {
   });
 });
 
+// Ruta liviana de health-check (no toca la BD)
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 // Exportar app para entornos serverless (Vercel) y escuchar solo en ejecución directa
 async function startIfRunDirect() {
   // Probar conexión a la base de datos al iniciar
@@ -74,8 +107,13 @@ if (require.main === module) {
     await startIfRunDirect();
   });
 } else {
-  // Vercel importará el handler
-  startIfRunDirect();
+  // En entorno serverless (Vercel) evitamos chequear BD en cada cold start para reducir ruido.
+  // Si quieres forzar el chequeo, define INIT_DB_CHECK=true en variables de entorno.
+  if (process.env.INIT_DB_CHECK === 'true') {
+    startIfRunDirect();
+  } else {
+    console.log('⏭️  Omitiendo test de BD en serverless (Vercel).');
+  }
 }
 
 module.exports = app;

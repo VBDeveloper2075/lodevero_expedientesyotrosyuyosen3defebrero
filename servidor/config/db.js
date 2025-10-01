@@ -1,52 +1,20 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
-// Función para parsear DATABASE_URL de Railway
-function parseDbUrl(databaseUrl) {
-  if (!databaseUrl) return null;
-  
-  try {
-    const url = new URL(databaseUrl);
-    return {
-      host: url.hostname,
-      port: parseInt(url.port) || 3306,
-      user: url.username,
-      password: url.password,
-      database: url.pathname.slice(1) // remover el '/' inicial
-    };
-  } catch (error) {
-    console.error('❌ Error parseando DATABASE_URL:', error);
-    return null;
-  }
-}
+// Configuración de conexión (solo variables de entorno estándar)
+// Se eliminó soporte para DATABASE_URL/Railway para evitar confusiones.
+const dbConfig = {
+  host: process.env.DB_HOST || 'localhost',
+  port: Number(process.env.DB_PORT || 3306),
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'jp3_db'
+};
 
-// Configuración de conexión (Railway o local)
-let dbConfig;
-
-if (process.env.DATABASE_URL) {
-  // Configuración para Railway
-  console.log('🚀 Usando configuración de Railway (DATABASE_URL)');
-  dbConfig = parseDbUrl(process.env.DATABASE_URL);
-  if (!dbConfig) {
-    throw new Error('DATABASE_URL inválida');
-  }
-} else {
-  // Configuración local
-  console.log('🔧 Usando configuración local');
-  dbConfig = {
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 3306,
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'jp3_db'
-  };
-}
-
-console.log('🔧 Configuración de base de datos:');
+console.log(' Configuración de base de datos:');
 console.log('  - Host:', dbConfig.host);
 console.log('  - Puerto:', dbConfig.port);
 console.log('  - Base de datos:', dbConfig.database);
-console.log('  - Usuario:', dbConfig.user);
 
 // Crear pool de conexiones
 const pool = mysql.createPool({
@@ -62,30 +30,29 @@ const pool = mysql.createPool({
 // Función para probar la conexión
 async function testConnection() {
   try {
-    console.log('🔍 Probando conexión a la base de datos...');
+    console.log(' Probando conexión a la base de datos...');
     const connection = await pool.getConnection();
-    console.log('✅ Conexión a la base de datos establecida con éxito');
+    console.log('Conexión a la base de datos establecida con éxito');
     
     // Probar una consulta simple
     const [rows] = await connection.execute('SELECT 1 as test, NOW() as timestamp');
-    console.log('✅ Consulta de prueba exitosa:', rows[0]);
+    console.log('Consulta de prueba exitosa:', rows[0]);
     
     connection.release();
     return true;
   } catch (error) {
-    console.error('❌ Error al conectar con la base de datos:', error);
-    console.error('📋 Detalles del error:');
+    console.error('Error al conectar con la base de datos:', error);
+    console.error('Detalles del error:');
     console.error(`  - Código: ${error.code}`);
     console.error(`  - Mensaje: ${error.message}`);
     
     // Sugerencias basadas en el tipo de error
     if (error.code === 'ECONNREFUSED') {
-      console.error('💡 Sugerencia: Verifica que MySQL esté corriendo localmente');
-      console.error('💡 O usa: mysql -u root -p para conectar');
+      console.error('Sugerencia: Verifica que MySQL esté corriendo o accesible desde el host configurado');
     } else if (error.code === 'ER_ACCESS_DENIED_ERROR') {
-      console.error('💡 Sugerencia: Verifica las credenciales de la base de datos');
+      console.error('Sugerencia: Verifica las credenciales de la base de datos');
     } else if (error.code === 'ER_BAD_DB_ERROR') {
-      console.error('💡 Sugerencia: La base de datos no existe o no está accesible');
+      console.error('Sugerencia: La base de datos no existe o no está accesible');
     }
     
     return false;

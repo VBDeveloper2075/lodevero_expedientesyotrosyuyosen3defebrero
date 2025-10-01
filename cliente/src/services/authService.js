@@ -1,8 +1,10 @@
 import axios from 'axios';
+import API_URL from './config';
 
-const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? process.env.REACT_APP_API_URL || 'https://jpverito-production.up.railway.app'  // URL REAL de Railway
-  : 'http://localhost:5000';
+// BASE para endpoints de auth (raíz del backend, sin "/api")
+const API_BASE_URL = API_URL.endsWith('/api')
+  ? API_URL.slice(0, -4)
+  : API_URL.replace(/\/$/, '');
 
 // Configurar interceptor para agregar token automáticamente
 axios.interceptors.request.use(
